@@ -4,3 +4,6 @@ data/state.json
 .vercel/
 
 *.tsbuildinfo
+
+data/trading-state.json
+data/trading-api-next/

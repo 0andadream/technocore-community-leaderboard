@@ -1,4 +1,4 @@
-name: Capture and publish community leaderboard
+name: Update Close Call trading dashboard
 on:
   workflow_dispatch:
   push:
@@ -25,15 +25,15 @@ jobs:
       - run: npm ci
       - uses: actions/cache/restore@v4
         with:
-          path: data/state.json
-          key: capture-${{ github.run_id }}-${{ github.run_attempt }}
-          restore-keys: capture-
+          path: data/trading-state.json
+          key: trading-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: trading-
       - run: npm test
       - run: npm run crawl
       - uses: actions/cache/save@v4
         with:
-          path: data/state.json
-          key: capture-${{ github.run_id }}-${{ github.run_attempt }}
+          path: data/trading-state.json
+          key: trading-${{ github.run_id }}-${{ github.run_attempt }}
       - id: pages
         uses: actions/configure-pages@v5
       - run: npm run build
