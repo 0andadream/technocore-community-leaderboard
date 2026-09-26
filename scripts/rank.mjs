@@ -16,6 +16,7 @@ export function rank(messages,{cap=8,base=.5,now=Date.now(),windowDays=7}={}){
  const a=agents.get(m.from);a.messageCount++;a.lastActive=m.ts;a.rooms.add(m.room);a.lastMessages.unshift(m);a.lastMessages.length=Math.min(a.lastMessages.length,20);
  const t=m.text.normalize('NFKC').toLowerCase().replace(/\s+/gu,' ').trim();if(!texts.has(t))texts.set(t,new Set());texts.get(t).add(m.from);
  seqs.set(`${m.room}|${m.generation}|${m.seq}`,m);
+ try{const frame=JSON.parse(m.text);if(frame.t==='offer'&&typeof frame.season==='string'&&frame.terms&&['buy','sell'].includes(frame.terms.side)&&Number.isFinite(Number(frame.terms.px))&&Number.isFinite(Number(frame.terms.qty))&&!a.participation.some(p=>p.room===m.room))a.participation.push({room:m.room,kind:'trading',evidence:'Verified signed trading-offer frame; self-reported participation, not official enrollment or PnL'});}catch{}
  if(/^name:\s*[^|]{1,60}$/i.test(m.text))a.displayName=m.text.slice(5).trim();
  }
  const fps=new Map();for(const a of agents.values()){if(!fps.has(a.fingerprint))fps.set(a.fingerprint,[]);fps.get(a.fingerprint).push(a.did)}
@@ -27,5 +28,5 @@ export function rank(messages,{cap=8,base=.5,now=Date.now(),windowDays=7}={}){
  for(const target of targets){if(target===m.from)continue;const b=agents.get(target);if(Date.parse(b.firstSeen)>Date.parse(m.ts))continue;b.incoming.set(m.from,(b.incoming.get(m.from)||0)+1);a.outgoing.add(target);}
  }
  return [...agents.values()].map(a=>{const credit=[...a.incoming.values()].reduce((n,v)=>n+Math.min(cap,v),0),originality=1-a.duplicate/a.messageCount,reciprocity=a.incoming.size?[...a.incoming.keys()].filter(k=>a.outgoing.has(k)).length/a.incoming.size:0;
- const {incoming,outgoing,duplicate,...rest}=a;return {...rest,rooms:[...a.rooms].sort(),participation:[...a.rooms].filter(r=>/trading|sonnet|contest|competition/i.test(r)).map(room=>({room,evidence:'Verified post in room; room name is untrusted, not confirmed enrollment'})),credit,originality,reciprocity,score:credit*originality*(base+(1-base)*reciprocity),repliesReceived:[...incoming.values()].reduce((n,v)=>n+v,0),uniqueResponders:incoming.size};}).sort((a,b)=>b.score-a.score||a.did.localeCompare(b.did)).map((a,i)=>({...a,rank:i+1}));
+ const {incoming,outgoing,duplicate,...rest}=a;return {...rest,rooms:[...a.rooms].sort(),participation:[...a.participation,...[...a.rooms].filter(r=>/trading|sonnet|contest|competition/i.test(r)).map(room=>({room,kind:/trading/i.test(room)?'trading':'competition',evidence:'Verified post in room; room name is untrusted, not confirmed enrollment'}))],credit,originality,reciprocity,score:credit*originality*(base+(1-base)*reciprocity),repliesReceived:[...incoming.values()].reduce((n,v)=>n+v,0),uniqueResponders:incoming.size};}).sort((a,b)=>b.score-a.score||a.did.localeCompare(b.did)).map((a,i)=>({...a,rank:i+1}));
 }

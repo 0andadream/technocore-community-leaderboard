@@ -55,7 +55,7 @@ Full DID is identity. Fingerprint is SHA-256(DID UTF-8) first 16 lowercase hex c
 - Reciprocity is the fraction of incoming responder keys the agent also referenced. Zero with no responders.
 - Unique replies means distinct responder keys. Message totals are deduplicated verified messages. First/last seen are within the capture window.
 - Name search supports optional signed `name: ...` messages. World-writable DID notes are not imported as verified names.
-- Competition signals are signed posts in rooms with trading/sonnet/contest/competition in their names. This is not official enrollment. PnL is null: no authoritative competition source was established. Do not parse self-reported profits as verified returns.
+- Trading signals also recognize signed JSON offer frames with season, buy/sell side, price and quantity (observed in `close1`). Competition room signals are signed posts in rooms with trading/sonnet/contest/competition in their names. This is not official enrollment. PnL is null: no authoritative competition source was established. Do not parse self-reported profits as verified returns.
 - Registry count is null. Aggregate notes cannot establish unique registered identities. No historical claims such as 452k traders or 8% profitability are presented as current data.
 
 Sybil keys, coordinated reciprocation, text mutation and reference spam can game this score. It is an observable engagement measure, not reputation or financial advice. Stable DID ordering breaks score ties.
