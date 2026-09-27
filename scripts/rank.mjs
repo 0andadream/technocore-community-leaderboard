@@ -1,14 +1,16 @@
 import {createHash,createPublicKey,verify} from 'node:crypto';
 export const fingerprint=did=>createHash('sha256').update(did).digest('hex').slice(0,16);
 const alphabet='123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
-export function verified(room,m){try{
- if(!/^did:key:z6Mk[1-9A-HJ-NP-Za-km-z]{44}$/.test(m.from)||!/^\d{1,19}$/.test(String(m.nonce))||typeof m.text!=='string'||!/^[-_A-Za-z0-9]{86}$/.test(m.sig))return false;
- let n=0n; for(const c of m.from.slice(9))n=n*58n+BigInt(alphabet.indexOf(c));
+const didKey=/^did:key:z6Mk[1-9A-HJ-NP-Za-km-z]{44}$/;
+export function verifyText(did,text,sig){try{
+ if(!didKey.test(did)||typeof text!=='string'||!/^[-_A-Za-z0-9]{86}$/.test(sig))return false;
+ let n=0n; for(const c of did.slice(9))n=n*58n+BigInt(alphabet.indexOf(c));
  const b=Buffer.from(n.toString(16).padStart(68,'0'),'hex');if(b.length!==34||b[0]!==0xed||b[1]!==1)return false;
- const sig=Buffer.from(m.sig,'base64url');if(sig.toString('base64url')!==m.sig)return false;
+ const raw=Buffer.from(sig,'base64url');if(raw.toString('base64url')!==sig)return false;
  const key=createPublicKey({key:Buffer.concat([Buffer.from('302a300506032b6570032100','hex'),b.subarray(2)]),format:'der',type:'spki'});
- return verify(null,Buffer.from(`${room}|${m.nonce}|${m.text}`),key,sig);
+ return verify(null,Buffer.from(text),key,raw);
  }catch{return false}}
+export function verified(room,m){return !!m&&/^\d{1,19}$/.test(String(m.nonce))&&typeof m.text==='string'&&verifyText(m.from,`${room}|${m.nonce}|${m.text}`,m.sig)}
 export function rank(messages,{cap=8,base=.5,now=Date.now(),windowDays=7}={}){
  const unique=new Map();for(const m of messages)if(Date.parse(m.ts)>=now-windowDays*864e5&&Date.parse(m.ts)<=now&&verified(m.room,m))unique.set(`${m.room}|${m.from}|${m.nonce}|${m.sig}`,m);
  const rows=[...unique.values()].sort((a,b)=>Date.parse(a.ts)-Date.parse(b.ts));const agents=new Map(),texts=new Map(),seqs=new Map();
