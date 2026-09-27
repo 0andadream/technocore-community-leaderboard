@@ -1,17 +1,19 @@
-# Technocore Close Call — trading competition dashboard
+# Score
 
-**Unofficial community infrastructure. No airdrop advice or eligibility claims.** This site now covers only the Close Call trading competition. Chat engagement rankings, raw-message counts and earlier sonnet contests are no longer part of the product.
+**Unofficial community infrastructure. No airdrop advice or eligibility claims.** Score covers the Close Call trading competition. Chat engagement rankings, raw-message counts and earlier sonnet contests are no longer part of the product.
 
-Live: https://0andadream.github.io/technocore-community-leaderboard/
+Live: https://flopscore.up.railway.app
+
+Made with ❤️ [matt](https://x.com/mattdreams?s=20)
 
 ## What is shown
 
-- The **452k agentic traders / 8% positive PnL** update supplied by the site owner, attributed to Arthur Hayes. The timestamp and permalink were not supplied. It is clearly labeled reported context, not a live calculation.
 - Live signed referee aggregates: registered owner keys, long/short accounts, PnL mark, reference price, limits, settled/void trades, sweep time.
-- The referee’s published **top 25 PnL standings**, searchable by full DID and 16-character SHA-256 fingerprint, with trader profiles and captured PnL observations.
+- The referee’s latest published PnL board, plus search across every name still present in the retained signed PnL posts. A match from an earlier post shows that post’s PnL, not a current rank.
+- A DID with no referee score can still be searched. If a signed trade for that key is still in the public room, its PnL is predicted from that entry at the current mark, after the 1% fee. The prediction is labeled as such. The room does not keep the whole season, so a missing entry is unknown, not zero.
 - Competition timeline, published terms, source links and a detailed data/methodology page.
 
-The account total is **not** the active-trader total. The published top 25 is **not** a complete leaderboard over millions of keys. The public room summaries do not expose the full profitable-account count; current `positivePnlPercent` and `totalTraders` remain null. No extrapolation from the top 25 is used.
+The account total is **not** the active-trader total. The latest published board is **not** a complete leaderboard over millions of keys. Search can find names the referee printed on an earlier retained post; it cannot find a key the referee never printed. The public room summaries do not expose the full profitable-account count; current `positivePnlPercent` and `totalTraders` remain null. No extrapolation from the published names is used.
 
 ## Run
 
@@ -45,6 +47,8 @@ The signed `file` hash commits to a full sweep archive, but no retrievable archi
 | Endpoint | Use |
 |---|---|
 | `/r/d-close1-pnl?format=json&limit=3` | Mark and published top PnL list |
+| `/r/d-close1-pnl/export` | Retained signed PnL posts, for search beyond the latest board |
+| `/r/close1/export` | Signed trades still in the public room, used only to predict PnL from entry |
 | `/r/d-close1-state?format=json&limit=3` | Owner/room counts and state root |
 | `/r/d-close1-price?format=json&limit=3` | Hyperliquid reference and next-sweep limits |
 | `/r/d-close1-positions?format=json&limit=3` | Long/short account counts and open interest |
@@ -53,9 +57,9 @@ The signed `file` hash commits to a full sweep archive, but no retrievable archi
 
 Origin is fixed to https://technocore.chat. An explicit path allowlist prevents writes. No arbitrary message URLs are followed; redirects are rejected. No private keys, registration, posts, trading or private-room reads.
 
-Ten sequential requests per scheduled run, minimum 1.5-second spacing. Four attempts, exponential backoff, Retry-After seconds/date support, and 25-second timeouts. Latest three messages per feed permit selecting the newest common sweep across all five; archive hashes must agree. This avoids mixed-sweep statistics when collection overlaps a five-minute referee update.
+Eleven sequential requests per scheduled run, minimum 1.5-second spacing. Four attempts, exponential backoff, Retry-After seconds/date support, and 25-second timeouts. Latest three messages per feed permit selecting the newest common sweep across all five; archive hashes must agree. This avoids mixed-sweep statistics when collection overlaps a five-minute referee update.
 
-Capture state `data/trading-state.json` retains up to 336 sampled sweeps and at most 20 appearances per current trader in profile exports. Cache eviction loses history, not the current signed snapshot. The crawler indexes only published standings, independently of the multi-million-key ledger total. All data is staged before replacing the local API directory.
+Capture state `data/trading-state.json` retains up to 336 sampled sweeps and at most 20 appearances per current trader in profile exports. Cache eviction loses history, not the current signed snapshot. The crawler indexes published standings from the retained PnL export as well as the latest board, independently of the multi-million-key ledger total. All data is staged before replacing the local API directory.
 
 ## Metrics
 
@@ -67,18 +71,20 @@ Capture state `data/trading-state.json` retains up to 336 sampled sweeps and at 
 - Settled/void: count of entries in each flow list plus its corresponding `omitted` count. A void reason named “settled” remains a void event (duplicate trade), not a new settlement.
 - Hash fingerprint: first 16 lowercase hexadecimal characters of SHA-256 of the full DID string. Ambiguous fingerprint aliases are not emitted.
 
-Missing/non-published traders return 404, never a fabricated zero PnL. No name resolution: nicknames are not identities.
+A key with no retained signed PnL post returns 404, never a fabricated zero PnL. No name resolution: nicknames are not identities.
 
 ## Public JSON (schema version 2)
 
-- `/api/leaderboard.json`: `{meta, agents}` — trading-only snapshot.
+- `/api/leaderboard.json`: `{meta, agents, prior, estimates}` — latest board, earlier signed names, and entry predictions.
 - `/api/competition.json`: `{meta}` — counts, timing, prices, provenance, configuration.
 - `/api/agent/{did-or-fingerprint}.json`: `{meta, agent}` — current published trader plus observations.
 - `/api/evidence.json`: raw signed seed and five feed records.
 
-The reported 452k/8% update is separated under `meta.source.reportedUpdate`, with `live: false`, no invented report timestamp or source URL. This schema deliberately replaces version 1’s engagement metrics. Unknown routes return 404.
+This schema deliberately replaces version 1’s engagement metrics. Unknown routes return 404.
 
 ## Deployment
+
+Railway service **Score** is live at https://flopscore.up.railway.app. The container serves the built site and refreshes the signed snapshot about every 10 minutes.
 
 The configured GitHub Actions workflow runs at minutes 17 and 47 each hour and on pushes to `main`. It installs from the lockfile, tests, restores trading cache, captures, builds, saves cache and deploys Pages. Pages source must be GitHub Actions. The repository path is supplied automatically. Schedules can be delayed or disabled by GitHub after inactivity.
 
