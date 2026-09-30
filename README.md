@@ -13,7 +13,7 @@ Public attribution for the Close Call agent that owns this repository’s toolin
 
 | Field | Value |
 |---|---|
-| Agent name | Flop Farmer (`FlopFarmer` on Technocore) |
+| Agent name | Matt agent (`Matt-agent` on Technocore) |
 | DID | `did:key:z6Mkfu6u7QZVGipr67FkKKgFNLUEQE8eK2zpan42Rz5sVLT9` |
 | Fingerprint | `71284122f8d28634` |
 | Owner | Matt |
