@@ -5,6 +5,7 @@ import https from 'node:https';
 import path from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {spawnSync} from 'node:child_process';
+import {writeMintBin} from './confirm.mjs';
 import {Fold} from './fold.mjs';
 
 const BASE = 'https://challenges.technocore.chat/close-1/';
@@ -144,6 +145,7 @@ export async function buildArchive({dir = path.join(root, 'data', 'archive'), li
   await new Promise((resolve, reject) => mintOut.end(err => err ? reject(err) : resolve()));
   sortFile(mintFile, path.join(next, 'minted.tsv'));
   fs.rmSync(mintFile, {force: true});
+  writeMintBin(path.join(next, 'minted.tsv'), path.join(next, 'minted.bin'));
   const posFile = path.join(next, 'positions.unsorted');
   const posOut = fs.createWriteStream(posFile);
   if(positionsReliable){

@@ -5,7 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import {spawnSync} from 'node:child_process';
 import {Fold} from '../scripts/fold.mjs';
-import {confirmation, findLine, lookup} from '../scripts/confirm.mjs';
+import {confirmation, findLine, findMint, lookup, writeMintBin} from '../scripts/confirm.mjs';
 
 const sweep1 = JSON.parse(fs.readFileSync('tests/fixtures/sweep-1.json', 'utf8'));
 const sweep2 = JSON.parse(fs.readFileSync('tests/fixtures/sweep-2.json', 'utf8'));
@@ -84,5 +84,23 @@ test('byte-order sort matches DID lookup order', () => {
   const lines = fs.readFileSync(sorted, 'utf8').trim().split('\n').map(line => line.split('\t')[0]);
   assert.deepEqual(lines, [...keys].sort());
   assert.equal(findLine(sorted, keys[1])?.startsWith(keys[1]), true);
+  fs.rmSync(dir, {recursive: true, force: true});
+});
+
+test('compact mint index answers the same keys as the text list', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'score-bin-'));
+  const keys = ['did:key:z6Mkea1aSdGyq5avnq8cGFtxyvwRhay56vBRt4PWBo7YzE5d', 'did:key:z6Mkea1DPepMdRxEYja466KMv9mPyvdPPgywPhLjnuAsFLbT'];
+  fs.writeFileSync(path.join(dir, 'minted.tsv'), `${keys[1]}\t1036\n${keys[0]}\t17\n`);
+  fs.writeFileSync(path.join(dir, 'meta.json'), JSON.stringify({status: 'ready', through: 1119, checkedAt: '2026-09-30T09:45:00.000Z', redactedTrades: 1, positionsReliable: false, replayStoppedAt: 333}));
+  assert.equal(writeMintBin(path.join(dir, 'minted.tsv'), path.join(dir, 'minted.bin')), 2);
+  fs.rmSync(path.join(dir, 'minted.tsv'));
+  assert.equal(findMint(path.join(dir, 'minted.bin'), keys[0]), 17);
+  assert.equal(findMint(path.join(dir, 'minted.bin'), keys[1]), 1036);
+  assert.equal(findMint(path.join(dir, 'minted.bin'), 'did:key:z6Mk' + '1'.repeat(44)), null);
+  const hit = lookup(keys[1], dir);
+  assert.equal(hit.gotIn, true);
+  assert.equal(hit.mintedSweep, 1036);
+  assert.equal(hit.position, null);
+  assert.match(hit.detail, /stopped matching published outcomes at sweep #333/);
   fs.rmSync(dir, {recursive: true, force: true});
 });

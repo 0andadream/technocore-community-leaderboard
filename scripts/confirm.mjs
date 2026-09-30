@@ -1,3 +1,4 @@
+import {createHash} from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -78,14 +79,88 @@ export function parsePosition(line){
   return {did, side, qty, entry, cash, fees, pnl, settled: Number(settled), voids: Number(voids)};
 }
 
+export function writeMintBin(tsvPath, dest){
+  const text = fs.readFileSync(tsvPath);
+  let count = 0;
+  for(let i = 0; i < text.length; i++) if(text[i] === 10) count++;
+  const body = Buffer.allocUnsafe(count * 10);
+  let offset = 0, rec = 0;
+  while(offset < text.length){
+    const end = text.indexOf(10, offset);
+    if(end < 0) break;
+    const tab = text.indexOf(9, offset);
+    if(tab < 0 || tab > end) throw Error('mint row has no sweep');
+    const sweep = Number(text.toString('utf8', tab + 1, end));
+    if(!Number.isInteger(sweep) || sweep < 1 || sweep > 65535) throw Error(`sweep out of range: ${sweep}`);
+    createHash('sha256').update(text.subarray(offset, tab)).digest().copy(body, rec * 10, 0, 8);
+    body.writeUInt16BE(sweep, rec * 10 + 8);
+    rec++;
+    offset = end + 1;
+  }
+  if(rec !== count) throw Error(`mint count ${rec} does not match ${count} rows`);
+  const order = new Uint32Array(count);
+  for(let i = 0; i < count; i++) order[i] = i;
+  const before = (a, b) => {
+    for(let i = 0; i < 8; i++){
+      const diff = body[a * 10 + i] - body[b * 10 + i];
+      if(diff) return diff;
+    }
+    return 0;
+  };
+  order.sort((a, b) => before(a, b));
+  const out = Buffer.allocUnsafe(10 + count * 10);
+  out.write('SCOR', 0);
+  out[4] = 1;
+  out[5] = 8;
+  out.writeUInt32BE(count, 6);
+  for(let i = 0; i < count; i++){
+    const from = order[i] * 10;
+    const to = 10 + i * 10;
+    if(i && out.compare(body, from, from + 8, to - 10, to - 2) === 0) throw Error('mint hash collision');
+    body.copy(out, to, from, from + 10);
+  }
+  fs.writeFileSync(dest, out);
+  return count;
+}
+export function findMint(file, did){
+  if(!file || !fs.existsSync(file)) return null;
+  const fd = fs.openSync(file, 'r');
+  try{
+    const head = Buffer.alloc(10);
+    if(fs.readSync(fd, head, 0, 10, 0) !== 10 || head.toString('utf8', 0, 4) !== 'SCOR' || head[4] !== 1 || head[5] !== 8) return undefined;
+    const count = head.readUInt32BE(6);
+    const key = createHash('sha256').update(did).digest().subarray(0, 8);
+    const rec = Buffer.alloc(10);
+    let lo = 0, hi = count;
+    while(lo < hi){
+      const mid = (lo + hi) >>> 1;
+      if(fs.readSync(fd, rec, 0, 10, 10 + mid * 10) !== 10) return undefined;
+      const cmp = rec.compare(key, 0, 8, 0, 8);
+      if(cmp === 0) return rec.readUInt16BE(8);
+      if(cmp < 0) lo = mid + 1; else hi = mid;
+    }
+    return null;
+  }finally{fs.closeSync(fd)}
+}
 export function lookup(did, dir){
   const metaFile = path.join(dir, 'meta.json');
   if(!fs.existsSync(metaFile)) return {...pending};
   let meta;
   try{meta = JSON.parse(fs.readFileSync(metaFile, 'utf8'))}catch{return {...pending}}
   if(meta.status !== 'ready') return confirmation({did, meta});
-  const mintLine = FULL_DID.test(did) ? findLine(path.join(dir, 'minted.tsv'), did) : null;
-  const mintedSweep = mintLine ? Number(mintLine.split('\t')[1]) : null;
-  const row = mintLine || FULL_DID.test(did) ? parsePosition(findLine(path.join(dir, 'positions.tsv'), did)) : null;
+  let mintedSweep = null;
+  if(FULL_DID.test(did)){
+    const bin = path.join(dir, 'minted.bin');
+    if(fs.existsSync(bin)){
+      const found = findMint(bin, did);
+      if(found === undefined) return {...pending};
+      mintedSweep = found;
+    }else{
+      const mintLine = findLine(path.join(dir, 'minted.tsv'), did);
+      const sweep = mintLine ? Number(mintLine.split('\t')[1]) : null;
+      mintedSweep = Number.isInteger(sweep) ? sweep : null;
+    }
+  }
+  const row = FULL_DID.test(did) ? parsePosition(findLine(path.join(dir, 'positions.tsv'), did)) : null;
   return confirmation({did, meta, mintedSweep: Number.isInteger(mintedSweep) ? mintedSweep : null, row});
 }
