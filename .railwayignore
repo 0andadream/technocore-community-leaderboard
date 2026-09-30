@@ -1,10 +1,5 @@
 node_modules
 dist
+data
 .git
 *.tsbuildinfo
-data/*
-!data/archive/
-data/archive/*
-!data/archive/meta.json
-!data/archive/minted.tsv
-!data/archive/positions.tsv
