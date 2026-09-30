@@ -1,5 +1,7 @@
 import crypto from 'node:crypto';
+import dns from 'node:dns';
 import fs from 'node:fs';
+import https from 'node:https';
 import path from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {spawnSync} from 'node:child_process';
@@ -8,21 +10,41 @@ import {Fold} from './fold.mjs';
 const BASE = 'https://challenges.technocore.chat/close-1/';
 const SEED = '226.14';
 const root = process.cwd();
+dns.setDefaultResultOrder('ipv4first');
 
 function sha256(buf){return crypto.createHash('sha256').update(buf).digest('hex')}
+function getOnce(url){
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    const done = (error, buf) => {
+      if(settled) return;
+      settled = true;
+      clearTimeout(timer);
+      if(error) reject(error); else resolve(buf);
+    };
+    const req = https.get(url, {family: 4, headers: {'user-agent': 'Score/1.0 (read-only close-1 archive replay)', accept: 'application/json'}}, res => {
+      const code = res.statusCode || 0;
+      if(code !== 200){res.resume(); done(Error(`HTTP ${code}`)); return}
+      const chunks = [];
+      res.on('data', chunk => chunks.push(chunk));
+      res.on('end', () => done(null, Buffer.concat(chunks)));
+      res.on('error', done);
+    });
+    const timer = setTimeout(() => req.destroy(Error('timeout')), 180_000);
+    req.on('error', done);
+  });
+}
 async function getBuf(url){
   let last;
-  for(let attempt = 1; attempt <= 4; attempt++){
-    try{
-      const res = await fetch(url, {redirect: 'error', headers: {'user-agent': 'Score/1.0 (read-only close-1 archive replay)'}, signal: AbortSignal.timeout(60_000)});
-      if(!res.ok) throw Error(`HTTP ${res.status}`);
-      return Buffer.from(await res.arrayBuffer());
-    }catch(error){
+  for(let attempt = 1; attempt <= 6; attempt++){
+    try{return await getOnce(url)}
+    catch(error){
       last = error;
-      await new Promise(resolve => setTimeout(resolve, 1500 * attempt));
+      console.log(JSON.stringify({archive: 'retry', url, attempt, error: String(error.message || error)}));
+      await new Promise(resolve => setTimeout(resolve, 2000 * attempt));
     }
   }
-  throw last;
+  throw Error(`${url}: ${last?.message || last}`);
 }
 function micro(text){
   const neg = String(text).startsWith('-');
@@ -74,10 +96,11 @@ export async function buildArchive({dir = path.join(root, 'data', 'archive'), li
   const mintOut = fs.createWriteStream(mintFile);
   const writeLine = async (stream, line) => {if(!stream.write(line)) await new Promise(resolve => stream.once('drain', resolve))};
   let redactedTrades = 0, publicTrades = 0, minted = 0, positionsReliable = true, replayStoppedAt = null, mark = SEED, markSweep = 0;
+  log(JSON.stringify({archive: 'start', sweeps: selected.length, bytes: selected.reduce((sum, sweep) => sum + (sweep.bytes || 0), 0)}));
   const inflight = new Map();
   let cursor = 0;
   const pull = () => {
-    while(inflight.size < 4 && cursor < selected.length){
+    while(inflight.size < 2 && cursor < selected.length){
       const sweep = selected[cursor++];
       if(!/^(?:sweeps|redacted)\/[a-f0-9]{64}\.json$/.test(sweep.path || '')) throw Error(`Bad archive path for sweep ${sweep.n}`);
       inflight.set(sweep.n, getBuf(BASE + sweep.path).then(buf => ({sweep, buf})));
@@ -85,7 +108,9 @@ export async function buildArchive({dir = path.join(root, 'data', 'archive'), li
   };
   pull();
   for(const listed of selected){
-    const {sweep, buf} = await inflight.get(listed.n);
+    let sweep, buf;
+    try{({sweep, buf} = await inflight.get(listed.n))}
+    catch(error){throw Error(`Sweep ${listed.n} download failed: ${error.message || error}`)}
     inflight.delete(listed.n);
     pull();
     const digest = sha256(buf);

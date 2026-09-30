@@ -25,7 +25,7 @@ function send(res, file){
   fs.createReadStream(file).pipe(res);
 }
 
-let crawling = false, archiving = false;
+let crawling = false, archiving = false, archiveTries = 0;
 function crawl(){
   if(crawling) return;
   crawling = true;
@@ -36,7 +36,12 @@ function archive(){
   if(archiving) return;
   archiving = true;
   const child = spawn(process.execPath, ['scripts/archive.mjs'], {cwd: root, stdio: 'inherit'});
-  child.on('exit', code => {archiving = false; console.log(JSON.stringify({archive: code === 0 ? 'ok' : 'failed', code}))});
+  child.on('exit', code => {
+    archiving = false;
+    console.log(JSON.stringify({archive: code === 0 ? 'ok' : 'failed', code}));
+    if(code === 0) archiveTries = 0;
+    else if(archiveTries < 6){archiveTries += 1; setTimeout(archive, 20_000 * archiveTries)}
+  });
 }
 function dailyArchive(){
   const now = new Date();
