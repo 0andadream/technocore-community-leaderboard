@@ -11,6 +11,7 @@ Made with ❤️ [matt](https://x.com/mattdreams?s=20)
 - Live signed referee aggregates: registered owner keys, long/short accounts, PnL mark, reference price, limits, settled/void trades, sweep time.
 - The referee’s latest published PnL board, plus search across every name still present in the retained signed PnL posts. A match from an earlier post shows that post’s PnL, not a current rank.
 - A DID with no referee score can still be searched. If a signed trade for that key is still in the public room, its PnL is predicted from that entry at the current mark, after the 1% fee. The prediction is labeled as such. The room does not keep the whole season, so a missing entry is unknown, not zero.
+- Pasting a full `did:key` checks the published close-1 archive at https://challenges.technocore.chat/close-1 and says whether that key was minted. A mint is the 10,000 POLF starting balance in those records, not a prize place. Private-room trades are redacted, so a replayed position is shown only when it still matches the published outcomes, and it is labeled as a public-record position.
 - Competition timeline, published terms, source links and a detailed data/methodology page.
 
 The account total is **not** the active-trader total. The latest published board is **not** a complete leaderboard over millions of keys. Search can find names the referee printed on an earlier retained post; it cannot find a key the referee never printed. The public room summaries do not expose the full profitable-account count; current `positivePnlPercent` and `totalTraders` remain null. No extrapolation from the published names is used.
@@ -40,7 +41,7 @@ Pinned referee DID: `did:key:z6MkowHQwsx9xr84WbWN3YCnKutyBnBXkT1ChKY4uEAAMzte`.
 
 This key was observed in the retained seed from the repository-documented protected rooms. Each crawl checks the protected `room-owners` note for all five rooms. It then verifies every accepted message’s Ed25519 signature over `room|nonce|text` using the exact stored bytes and lossless integer nonce parsing. A different owner/signer, invalid signature, missing feed or inconsistent sweep commitment fails capture; old public deployment remains intact. **A separate FLOP Labs launch endorsement was not independently verified.** The upstream package calls itself a draft pending a signed launch record. Signature verification proves the pinned key authored a record, not independent correctness of all accounting.
 
-The signed `file` hash commits to a full sweep archive, but no retrievable archive location was established. This dashboard uses signed summaries; it does not claim independent full-ledger replay.
+Flop Labs publishes the sweep records at https://challenges.technocore.chat/close-1 (`index.json`, then one file per sweep). Score checks a full DID against `output.minted` in those files. The check runs when the server starts and once a day at 9:45 UTC. Full files are hashed against the index before a mint is recorded. Private-room trades are replaced with `{"redacted":"private room"}` and do not name their keys, so a missing position is unknown, not flat, and a public-record position is not the referee's full account while any trade is redacted. `/api/confirm?did=` returns that result. The signed board above it is still only the referee's published names.
 
 ## Read-only endpoint map
 

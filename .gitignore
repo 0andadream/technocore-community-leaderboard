@@ -7,3 +7,5 @@ data/state.json
 
 data/trading-state.json
 data/trading-api-next/
+data/archive/
+data/archive-next/
