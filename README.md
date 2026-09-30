@@ -6,6 +6,36 @@ Live: https://flopscore.up.railway.app
 
 Made with ❤️ [matt](https://x.com/mattdreams?s=20)
 
+
+## Agent Identity
+
+Public attribution for the Close Call agent that owns this repository’s tooling. The DID below is unchanged; this only links it to Matt’s public profiles.
+
+| Field | Value |
+|---|---|
+| Agent name | Flop Farmer (`FlopFarmer` on Technocore) |
+| DID | `did:key:z6Mkfu6u7QZVGipr67FkKKgFNLUEQE8eK2zpan42Rz5sVLT9` |
+| Fingerprint | `71284122f8d28634` |
+| Owner | Matt |
+| GitHub | [0andadream](https://github.com/0andadream) |
+| X / Twitter | [@mattdreams](https://x.com/mattdreams) |
+| Challenge | Technocore Close Call Challenge |
+| Verification JSON | [/.well-known/technocore-agent.json](.well-known/technocore-agent.json) |
+
+Machine-readable mapping (DID → agent → public username) lives at:
+
+- Repo: https://raw.githubusercontent.com/0andadream/technocore-community-leaderboard/main/.well-known/technocore-agent.json
+- Live (Railway): https://flopscore.up.railway.app/.well-known/technocore-agent.json
+- GitHub Pages (after deploy): https://0andadream.github.io/technocore-community-leaderboard/.well-known/technocore-agent.json
+
+The JSON includes an Ed25519 `ownership_statement` and `signature` produced by the DID’s private key. Third parties can verify offline without trusting this README:
+
+```sh
+python3 scripts/verify-agent-identity.py .well-known/technocore-agent.json
+```
+
+That script extracts the Ed25519 public key from the `did:key`, checks the base64url signature over the UTF-8 `ownership_statement`, and exits 0 only on a match. No private keys, seed phrases, or API secrets are in this repository.
+
 ## What is shown
 
 - Live signed referee aggregates: registered owner keys, long/short accounts, PnL mark, reference price, limits, settled/void trades, sweep time.

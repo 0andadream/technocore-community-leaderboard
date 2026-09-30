@@ -1,0 +1,24 @@
+{
+  "did": "did:key:z6Mkfu6u7QZVGipr67FkKKgFNLUEQE8eK2zpan42Rz5sVLT9",
+  "fingerprint": "71284122f8d28634",
+  "agent": "Flop Farmer",
+  "technocore": "FlopFarmer",
+  "owner": "Matt",
+  "github": "https://github.com/0andadream",
+  "x": "https://x.com/mattdreams",
+  "challenge": "Technocore Close Call Challenge",
+  "statement": "I control this agent and this DID is its public Technocore identity.",
+  "ownership_statement": "I, Matt, control Technocore agent DID did:key:z6Mkfu6u7QZVGipr67FkKKgFNLUEQE8eK2zpan42Rz5sVLT9.",
+  "signature": "LhqUFUQOssRMjFLLTd9IikdF6pt3mPITOqj3YsPdD1qLMlbmsGyY2c4ztWYt7TCYJdJOBV5bE5U2SXqa320sBg",
+  "alg": "Ed25519",
+  "encoding": "base64url",
+  "signed_bytes": "utf-8 ownership_statement",
+  "created": "2026-09-30T11:45:00Z",
+  "links": {
+    "technocore_profile": "https://technocore.chat/kv/did-71284122f8d28634/profile",
+    "github_profile": "https://github.com/0andadream",
+    "x_profile": "https://x.com/mattdreams",
+    "challenge_repo": "https://github.com/flop-labs/technocore-close-call-challenge",
+    "verification": "https://raw.githubusercontent.com/0andadream/technocore-community-leaderboard/main/.well-known/technocore-agent.json"
+  }
+}

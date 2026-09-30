@@ -9,3 +9,10 @@ data/trading-state.json
 data/trading-api-next/
 data/archive/
 data/archive-next/
+
+# never commit agent secrets
+identity.pem
+.passphrase
+*.pem
+.env
+.env.*
