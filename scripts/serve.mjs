@@ -69,9 +69,10 @@ const server = http.createServer((req, res) => {
   const url = new URL(req.url, 'http://localhost');
   const pathname = decodeURIComponent(url.pathname);
   if(MAINTENANCE){
-    if(pathname === '/score-logo.jpg'){
-      const logo = existing(path.join(root, 'public', 'score-logo.jpg')) || existing(path.join(dist, 'score-logo.jpg'));
-      if(logo){send(res, logo); return}
+    if(pathname === '/score-logo.jpg' || pathname === '/.well-known/technocore-agent.json'){
+      const rel = pathname.slice(1);
+      const file = existing(path.join(root, 'public', rel)) || existing(path.join(dist, rel)) || existing(path.join(root, rel));
+      if(file){send(res, file); return}
     }
     if(pathname.startsWith('/api/')){
       res.writeHead(503, {'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', 'access-control-allow-origin': '*'});
